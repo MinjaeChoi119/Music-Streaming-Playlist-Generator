@@ -1,62 +1,73 @@
 # OneClick
 
-A Kivy Android app that builds a Melon **one-click link** — a single link that drops a whole song queue into the Melon player — out of a set list you assemble in the app.
+Melon playlist to a single link. Search an artist, tap the songs you want, and the app hands you a `melonapp://` link that loads the whole queue into Melon.
+
+Kivy app packaged for Android. Written in 2024 for an HCI course at Hanyang University.
+
+| Search | Pick songs | Playlist | Links | Shortened |
+| --- | --- | --- | --- | --- |
+| ![](image1.png) | ![](image2.png) | ![](image3.png) | ![](image4.png) | ![](image5.png) |
 
 ## Why
 
-One-click links already existed and were in wide use: idol fandoms put together playlists for the artists they supported and distributed them as links. The convenience was for the person *receiving* the link. Producing one was the complicated part, and that work fell entirely on the person creating it.
+One-click links weren't new. Idol fandoms had been assembling playlists for the artists they supported and passing the links around for a while, and on the receiving end it works great: one tap and the queue is loaded. Building one is a fiddly manual process, and all of that lands on the person making it.
 
-So this project takes the **link creator** as its user, and tries to cut down the effort and the learning curve of making one of these links.
+So the user here isn't whoever clicks the link. It's whoever makes it.
 
-## How it works
+## What it does
 
-1. **Search an artist by name.** The app resolves the name through Melon's search endpoint (`search/keyword/index.json`) and takes the artist ID from the first result.
-2. **Pull the catalogue.** It pages through that artist's songs 50 at a time via `artist/songPaging.htm`, parses the returned markup with BeautifulSoup, and lifts each song's title and ID out of the `playSong('<artistId>',<songId>)` handler, along with album names.
-3. **Pick songs, in order.** Tapping a track adds it to the playlist; the playlist screen shows the current selection and can reset it.
-4. **Generate the links** from the playlist screen.
+Search by artist name. The app hits Melon's search endpoint (`search/keyword/index.json`), takes the artist ID off the first result, then walks that artist's discography 50 songs at a time through `artist/songPaging.htm`, scraping the title, the album, and the song ID out of each row's `playSong('<artistId>',<songId>)` handler.
 
-### Link generation
+Tap songs to queue them up. The playlist screen shows the current selection and can clear it. Press OneClick and you get the links.
 
-The links are `melonapp://` deep links, and the format differs between platforms, so the app emits an Android link, an iOS link and a PC link.
+### Links
 
-The Android Melon player will not accept the same song twice from one link. So the selection is split at every repeat: each segment becomes its own link, and the segments are listed in play order. Android and PC links are segmented this way; the iOS link is emitted as a single URL covering the whole selection.
+They're `melonapp://` deep links, and the scheme differs by platform, so the app emits three sets: Android, iOS, PC.
 
-On the URL screen each link is a button — pressing it opens Melon with that segment queued. A separate button shortens every link through the TinyURL API and shows them together in one read-only popup with a copy-to-clipboard button, so the finished links can be pasted somewhere and shared.
+Duplicates are the awkward case. The Android Melon player won't take the same song twice from a single link, so the selection gets split at every repeat: each run of unique songs becomes its own link, numbered in play order, and you open them in sequence. Android and PC are segmented that way. iOS takes the whole selection in one URL.
 
-Artist lookup, song paging and URL shortening all run on worker threads with callbacks, so the UI never blocks. A `사용법` button opens a five-image walkthrough.
+Every link on the URL screen is a button that opens Melon directly. There's also a shortener pass that runs all of them through TinyURL and drops the result into one popup with a copy-all button, which is what you actually paste when you hand the playlist to someone.
+
+Artist lookup, song paging and shortening each run on a worker thread with a callback, so the UI stays responsive while Melon is being paged. The `사용법` button in the corner opens the five screens above as an in-app walkthrough.
 
 ## Files
 
-| File | Purpose |
+| File | What's in it |
 | --- | --- |
-| `main.py` | The Kivy app — screens, selectable track list, segmentation, link generation, shortening, clipboard |
-| `melon_extract_artist_id.py` | Resolves an artist name to an artist ID |
-| `melon_extract_song_info_with_artist_id.py` | Pages through an artist's songs, extracting titles, song IDs and album names |
-| `OneClick-1.2.apk` | Release build (arm64-v8a, armeabi-v7a) |
+| `main.py` | The Kivy app: screens, selectable track list, segmentation, link generation, shortening, clipboard |
+| `melon_extract_artist_id.py` | Artist name to artist ID |
+| `melon_extract_song_info_with_artist_id.py` | Pages an artist's songs, pulling titles, song IDs and album names |
+| `OneClick-1.2.apk` | Release build, arm64-v8a and armeabi-v7a |
+| `image1.png`–`image5.png` | The in-app walkthrough |
 
 ## User study
 
-23 respondents; 87% had used a Melon one-click link before. Each respondent answered one survey about the existing manual method and one about OneClick, with the order counterbalanced — 56.5% took the existing-method survey first, 43.5% started with OneClick. Both surveys were Google Forms, distributed through blog posts that carried a written walkthrough for the manual method and the APK for the app.
+23 people, recruited through two blog posts that each carried their own Google Form:
 
-Ratings were on a 1–5 scale. Means over the 23 responses:
+- [멜론 원클릭 스트리밍 링크 쉽게 만들기](https://siemarbas.tistory.com/2) — a written walkthrough of the existing manual method
+- [멜론 원클릭 스트리밍 앱](https://siemarbas.tistory.com/3) — the APK
 
-| | Existing method | OneClick |
+87% had used a Melon one-click link before. Everyone answered both surveys with the order counterbalanced: 56.5% did the manual method first, 43.5% started with the app.
+
+Ratings were on a 1–5 scale. The numbers below are means over the 23 responses; the deck itself reported the distributions.
+
+| | Manual method | OneClick |
 | --- | --- | --- |
-| Usability — easy to understand how to use it | 2.13 | 4.17 |
-| Usability — interface felt intuitive | 2.22 | 4.17 |
-| Functionality — had every function that was needed | 3.65 | 4.26 |
-| Satisfaction — met expectations | 3.70 | 4.35 |
-| Satisfaction — would use it again | 3.30 | 4.26 |
-| Satisfaction — would recommend it to someone else | 2.57 | 4.00 |
+| Easy to understand how to use it | 2.13 | 4.17 |
+| Interface felt intuitive | 2.22 | 4.17 |
+| Had every function that was needed | 3.65 | 4.26 |
+| Met expectations | 3.70 | 4.35 |
+| Would use it again | 3.30 | 4.26 |
+| Would recommend it to someone else | 2.57 | 4.00 |
 
-Yes/no items:
+And the yes/no items:
 
-| | Existing method | OneClick |
+| | Manual method | OneClick |
 | --- | --- | --- |
 | Hit an error while creating the link | 8.7% yes | 0% yes |
 | The generated link worked correctly | 91.3% yes | 100% yes |
 
-The two conclusions drawn were improved usability, and a demand for extensibility.
+Two conclusions came out of it: usability improved, and there was demand for extensibility.
 
 ## Running it
 
@@ -67,8 +78,4 @@ pip install kivy requests beautifulsoup4
 python main.py
 ```
 
-The UI is drawn in a bundled Korean font (`nanayang.ttf`) that is not committed here — drop any Korean-capable TTF in beside `main.py` under that name. The walkthrough images (`image1.png`–`image5.png`) are not committed either, so the `사용법` popup will not render without them. Source comments are in Korean.
-
-## Background
-
-Built for a human-computer interaction course at Hanyang University in 2024.
+One thing is missing from the repo. The UI hardcodes a Korean font at `./nanayang.ttf`, which isn't committed here, so drop any Korean-capable TTF in beside `main.py` under that name. Comments in `main.py` are in Korean.
